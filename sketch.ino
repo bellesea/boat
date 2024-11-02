@@ -92,7 +92,4 @@ void loop() {
     Serial.println("WE'RE DONE");
   }
   delay(3000);
-  // while (!Serial.available());
-  // x = Serial.readString().toInt();
-  // Serial.print(x);
 }
