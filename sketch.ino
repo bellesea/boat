@@ -1,11 +1,15 @@
-int destinationLng = -71.31070;
-int destinationLat = 42.29262;
-int currentLng;
-int currentLat;
-int currentX;
-int currentY;
-int prevX;
-int prevY;
+float destinationLng = -71.31070;
+float destinationLat = 42.29262;
+float currentLng;
+float currentLat;
+float currentX;
+float currentY;
+float prevX;
+float prevY;
+float distX;
+float distY;
+float headingRad;
+float heading;
 int currentDirection; // 1 = left; 0 = right;
 bool useX;
 
@@ -15,18 +19,21 @@ void setup() {
 }
 
 int getHeading() {
-  // add code we don't know
-    // find quadrants & set useX
+  distX = destinationX - currentX;
+  distY = destinationY - currentY;
+  headingRad = atan2(distX, distY);
+  heading = degrees(headingRad);
+  return heading;
 }
 
 int getX(lat, lng) {
   int num = 6, 371 * cos(lat) * lng;
-  return num % pow(10, 9) 
+  return num % pow(10, 9);
 }
 
 int getY(lat) {
-  int num = 6, 371 * lat
-  return num % pow(10, 9) 
+  int num = 6, 371 * lat;
+  return num % pow(10, 9) ;
 }
 
 int destinationX = getX(destinationLng);
@@ -37,10 +44,10 @@ int getDistance(currentX, currentY) {
 }
 
 int getCloser(currentX, currentY, prevX, prevY) {
-  bool x = getXDifference(currentX) < getXDifference(prevX)
-  bool y = getYDifference(currentY) < getYDifference(prevY)
+  bool x = getXDifference(currentX) < getXDifference(prevX);
+  bool y = getYDifference(currentY) < getYDifference(prevY);
 
-  return [x, y]
+  return [x, y];
 }
 
 int getXDifference(coordinate) {
