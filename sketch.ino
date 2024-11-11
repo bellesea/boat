@@ -3,6 +3,9 @@
 
 static const int RXPin = 4, TXPin = 3;
 static const uint32_t GPSBaud = 9600;
+unsigned long startMillis;  //some global variables available anywhere in the program
+unsigned long currentMillis;
+const unsigned long period = 5000; 
 
 // The TinyGPS++ object
 TinyGPSPlus gps;
@@ -10,8 +13,8 @@ TinyGPSPlus gps;
 // The serial connection to the GPS device
 SoftwareSerial ss(RXPin, TXPin);
 
-float destinationLng = -71.31070;
-float destinationLat = 42.29262;
+float destinationLng = -71.30584;
+float destinationLat = 42.29352;
 float distance;
 float currentLng;
 float currentLat;
@@ -23,8 +26,8 @@ float distX;
 float distY;
 float headingRad;
 float heading;
-int currentDirection;  // 1 = left; 0 = right;
-bool useX;
+int currentDirection = 1;  // 1 = left; 0 = right;
+bool useX = true;
 bool xIsCloser;
 bool yIsCloser;
 
@@ -32,6 +35,7 @@ void setup() {
   Serial.begin(9600);
   ss.begin(GPSBaud);
   Serial.setTimeout(1);
+  startMillis = millis();
 }
 
 float getX(float lat, float lng) {
@@ -77,20 +81,34 @@ float getDistance(float lat1, float lon1) {
 }
 
 bool getCloserX(float currentX, float prevX) {
-  bool x = getXDifference(currentX) < getXDifference(prevX);
+  bool x = getXDifference(currentX) <= getXDifference(prevX);
+  Serial.println(getXDifference(currentX));
+  Serial.println(getXDifference(prevX));
+  Serial.println("x difference:" + x);
+  if(x) {
+    Serial.println("Closer X");
+  } else {
+    Serial.println("Not closer X");
+  }
   return x;
 }
 
 bool getCloserY(float currentY, float prevY) {
-  bool y = getYDifference(currentY) < getYDifference(prevY);
+  bool y = getYDifference(currentY) <= getYDifference(prevY);
+  Serial.println(getYDifference(currentY));
+  Serial.println(getYDifference(prevY));
+  if(y) {
+    Serial.println("Closer Y");
+  } else {
+    Serial.println("Not closer Y");
+  }
   return y;
 }
 
-
-int getXDifference(float coordinate) {
+float getXDifference(float coordinate) {
   return destinationX - coordinate;
 }
-int getYDifference(float coordinate) {
+float getYDifference(float coordinate) {
   return destinationY - coordinate;
 }
 
@@ -113,43 +131,48 @@ void toggleDirection() {
 }
 
 void loop() {
-  Serial.println("HII");
+  // Serial.println("HII");
   while (ss.available() > 0){
     gps.encode(ss.read());
     if (gps.location.isUpdated()){
-      Serial.print("Latitude= ");
-      Serial.print(gps.location.lat(), 6);
+      // Serial.print("Latitude= ");
+      // Serial.print(gps.location.lat(), 6);
       currentLat = gps.location.lat();
-      Serial.print(" Longitude= ");
-      Serial.println(gps.location.lng(), 6);
+      // Serial.print(" Longitude= ");
+      // Serial.println(gps.location.lng(), 6);
       currentLng = gps.location.lng();
     }
   }
 
-  currentX = getX(currentLat, currentLng);
-  currentY = getY(currentLat);
-  Serial.println(currentX);
-  Serial.println(currentY);
-  Serial.println(destinationX);
-  Serial.println(destinationY);
-  // logic
-  xIsCloser = getCloserX(currentX, prevX);
-  yIsCloser = getCloserX(currentY, prevY);
+  currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
+  if (currentMillis - startMillis >= period)  //test whether the period has elapsed
+  {
+    // heading = getHeading();
+    // Serial.println(heading);
+    // Serial.println("hii");
+    currentX = getX(currentLat, currentLng);
+    currentY = getY(currentLat);
 
-  if (useX && !xIsCloser) {
-    toggleDirection();
-  } else if (!useX && !yIsCloser) {
-    toggleDirection();
+    // logic
+    xIsCloser = getCloserX(currentX, prevX);
+    yIsCloser = getCloserY(currentY, prevY);
+
+    if (useX && !xIsCloser) {
+      toggleDirection();
+    } else if (!useX && !yIsCloser) {
+      toggleDirection();
+    }
+
+    prevX = currentX;
+    prevY = currentY;
+
+    distance = getDistance(currentLat, currentLng);
+    // Serial.println(distance);
+    Serial.println(currentDirection);
+
+    if (distance < 50) {
+      Serial.println("WE'RE DONE");
+    }
+    startMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
   }
-
-  prevX = currentX;
-  prevY = currentY;
-
-  distance = getDistance(currentLat, currentLng);
-  Serial.println(distance);
-
-  if (distance < 3000) {
-    Serial.println("WE'RE DONE");
-  }
-  delay(3000);
 }
