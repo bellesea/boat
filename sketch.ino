@@ -1,3 +1,15 @@
+#include <TinyGPS++.h>
+#include <SoftwareSerial.h>
+
+static const int RXPin = 4, TXPin = 3;
+static const uint32_t GPSBaud = 9600;
+
+// The TinyGPS++ object
+TinyGPSPlus gps;
+
+// The serial connection to the GPS device
+SoftwareSerial ss(RXPin, TXPin);
+
 float destinationLng = -71.31070;
 float destinationLat = 42.29262;
 float distance;
@@ -11,13 +23,14 @@ float distX;
 float distY;
 float headingRad;
 float heading;
-int currentDirection; // 1 = left; 0 = right;
+int currentDirection;  // 1 = left; 0 = right;
 bool useX;
 bool xIsCloser;
 bool yIsCloser;
 
 void setup() {
   Serial.begin(9600);
+  ss.begin(GPSBaud);
   Serial.setTimeout(1);
 }
 
@@ -42,7 +55,7 @@ float getHeading() {
 }
 
 // Constants
-float R = 6371000; // Earth's radius in meters (can be adjusted if needed)
+float R = 6371000;  // Earth's radius in meters (can be adjusted if needed)
 
 // Convert degrees to radians
 float toRadians(float degrees) {
@@ -60,7 +73,7 @@ float getDistance(float lat1, float lon1) {
   // Calculate the distance using the provided formula
   float d = 2 * R * asin(sqrt(sq(sin((lat2 - lat1) / 2)) + cos(lat1) * cos(lat2) * sq(sin((lon2 - lon1) / 2))));
 
-  return d; // Return distance in meters
+  return d;  // Return distance in meters
 }
 
 bool getCloserX(float currentX, float prevX) {
@@ -92,7 +105,7 @@ void goRight() {
 }
 
 void toggleDirection() {
-  if (currentDirection == 1) { // 1 = left
+  if (currentDirection == 1) {  // 1 = left
     goRight();
   } else {
     goLeft();
@@ -101,9 +114,17 @@ void toggleDirection() {
 
 void loop() {
   Serial.println("HII");
-  // read from GPS
-  currentLng = -71.31117;
-  currentLat = 42.29237;
+  while (ss.available() > 0){
+    gps.encode(ss.read());
+    if (gps.location.isUpdated()){
+      Serial.print("Latitude= ");
+      Serial.print(gps.location.lat(), 6);
+      currentLat = gps.location.lat();
+      Serial.print(" Longitude= ");
+      Serial.println(gps.location.lng(), 6);
+      currentLng = gps.location.lng();
+    }
+  }
 
   currentX = getX(currentLat, currentLng);
   currentY = getY(currentLat);
