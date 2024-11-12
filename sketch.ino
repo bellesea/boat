@@ -1,11 +1,11 @@
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
-static const int RXPin = 4, TXPin = 3;
+static const int RXPin = 4, TXPin = 3; // pins actually switched on the arduino
 static const uint32_t GPSBaud = 9600;
 unsigned long startMillis;  //some global variables available anywhere in the program
 unsigned long currentMillis;
-const unsigned long period = 5000; 
+const unsigned long period = 1000; 
 
 // The TinyGPS++ object
 TinyGPSPlus gps;
@@ -13,8 +13,8 @@ TinyGPSPlus gps;
 // The serial connection to the GPS device
 SoftwareSerial ss(RXPin, TXPin);
 
-float destinationLng = -71.30584;
-float destinationLat = 42.29352;
+float destinationLng = -71.26430;
+float destinationLat = 42.29319;
 float distance;
 float currentLng;
 float currentLat;
@@ -27,9 +27,12 @@ float distY;
 float headingRad;
 float heading;
 int currentDirection = 1;  // 1 = left; 0 = right;
-bool useX = true;
+bool useX;
 bool xIsCloser;
 bool yIsCloser;
+float leftspeed;
+float rightspeed;
+float defaultspeed = 20;
 
 void setup() {
   Serial.begin(9600);
@@ -50,13 +53,34 @@ float getY(float lat) {
 float destinationX = getX(destinationLat, destinationLng);
 float destinationY = getY(destinationLat);
 
-float getHeading() {
-  distX = destinationX - currentX;
-  distY = destinationY - currentY;
-  headingRad = atan2(distX, distY);
-  heading = degrees(headingRad);
+// float getHeading() {
+//   distX = destinationX - currentX;
+//   distY = destinationY - currentY;
+//   headingRad = atan2(distX, distY);
+//   heading = degrees(headingRad);
+//   return heading;
+// }
+
+float getHeading(float flat1, float flat2, float flon1, float flon2) {
+  flat1 = radians(flat1);
+  flat2 = radians(flat2);
+  float diflon = radians((flon2) - (flon1));
+  float a = sin(diflon) * cos(flat2);
+  float b = cos(flat1) * sin(flat2) - sin(flat1) * cos(flat2) * cos(diflon);
+  a = atan2(a, b);
+  heading = degrees(a);
+  if (heading < 0) { heading = 360 + heading; }
+  if (heading <= 45 || heading >= 315 || heading <= 225 && heading >= 135) {
+    useX = true;
+    Serial.println("using x");
+  }
+  else {
+    useX = false;
+    Serial.println("using y");
+  }
   return heading;
 }
+
 
 // Constants
 float R = 6371000;  // Earth's radius in meters (can be adjusted if needed)
@@ -82,25 +106,25 @@ float getDistance(float lat1, float lon1) {
 
 bool getCloserX(float currentX, float prevX) {
   bool x = getXDifference(currentX) <= getXDifference(prevX);
-  Serial.println(getXDifference(currentX));
-  Serial.println(getXDifference(prevX));
-  Serial.println("x difference:" + x);
+  //Serial.println(getXDifference(currentX));
+  //Serial.println(getXDifference(prevX));
+  //Serial.println("x difference:" + x);
   if(x) {
     Serial.println("Closer X");
   } else {
-    Serial.println("Not closer X");
+    //Serial.println("Not closer X");
   }
   return x;
 }
 
 bool getCloserY(float currentY, float prevY) {
   bool y = getYDifference(currentY) <= getYDifference(prevY);
-  Serial.println(getYDifference(currentY));
-  Serial.println(getYDifference(prevY));
+  //Serial.println(getYDifference(currentY));
+  //Serial.println(getYDifference(prevY));
   if(y) {
     Serial.println("Closer Y");
   } else {
-    Serial.println("Not closer Y");
+    //Serial.println("Not closer Y");
   }
   return y;
 }
@@ -114,12 +138,26 @@ float getYDifference(float coordinate) {
 
 void goLeft() {
   currentDirection = 1;
-  Serial.println('left');
+  if (useX == true) {
+    leftspeed = 10*getXDifference(currentX);
+  }
+  else {
+    leftspeed = 10*getYDifference(currentY);
+  }
+  rightspeed = defaultspeed;
+  Serial.println("go left");
 }
 
 void goRight() {
   currentDirection = 0;
-  Serial.println('right');
+  if (useX == true) {
+    rightspeed = 10*getXDifference(currentX);
+  }
+  else {
+    rightspeed = 10*getYDifference(currentY);
+  }
+  leftspeed = defaultspeed;
+  Serial.println("go right");
 }
 
 void toggleDirection() {
@@ -147,8 +185,8 @@ void loop() {
   currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
   if (currentMillis - startMillis >= period)  //test whether the period has elapsed
   {
-    // heading = getHeading();
-    // Serial.println(heading);
+    heading = getHeading(currentLat, destinationLat, currentLng, destinationLng);
+    Serial.println(heading);
     // Serial.println("hii");
     currentX = getX(currentLat, currentLng);
     currentY = getY(currentLat);
@@ -168,11 +206,16 @@ void loop() {
 
     distance = getDistance(currentLat, currentLng);
     // Serial.println(distance);
-    Serial.println(currentDirection);
+    if(currentDirection == 1) {
+      Serial.println("Keep Left");
+    } else {
+      Serial.println("Keep Right");
+    }
 
-    if (distance < 50) {
+    if (distance < 10) {
       Serial.println("WE'RE DONE");
     }
+    Serial.println("");
     startMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
   }
 }
