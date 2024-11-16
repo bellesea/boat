@@ -33,6 +33,11 @@ bool yIsCloser;
 float leftspeed;
 float rightspeed;
 float defaultspeed = 20;
+int waypoint_num = 5;
+float waypoint_Xdiff;
+float waypoint_Xdist;
+float waypoint_Ydist;
+int n = 1;
 
 void setup() {
   Serial.begin(9600);
@@ -50,9 +55,9 @@ float getY(float lat) {
   int num = 6371 * lat;
   return fmod(num, pow(10, 9));
 }
+
 float destinationX = getX(destinationLat, destinationLng);
 float destinationY = getY(destinationLat);
-
 // float getHeading() {
 //   distX = destinationX - currentX;
 //   distY = destinationY - currentY;
@@ -129,11 +134,11 @@ bool getCloserY(float currentY, float prevY) {
   return y;
 }
 
-float getXDifference(float coordinate) {
-  return destinationX - coordinate;
+float getXDifference(float currentX) {
+  return waypoint_Xdist - currentX;
 }
-float getYDifference(float coordinate) {
-  return destinationY - coordinate;
+float getYDifference(float currentY) {
+  return waypoint_Ydist - currentY;
 }
 
 void goLeft() {
@@ -168,26 +173,33 @@ void toggleDirection() {
   }
 }
 
+float gen_waypoint(int n, float heading) {
+    waypoint_Xdiff = getXDifference(currentX)/waypoint_num;
+    waypoint_Xdist = n * waypoint_Xdiff; // multiply generated waypoint number by x distance between each generated waypointed
+    waypoint_Ydist = waypoint_Xdist * tan(heading);
+    return (waypoint_Xdist, waypoint_Ydist);
+  }
+
 void loop() {
   // Serial.println("HII");
   while (ss.available() > 0){
     gps.encode(ss.read());
     if (gps.location.isUpdated()){
-      // Serial.print("Latitude= ");
-      // Serial.print(gps.location.lat(), 6);
+      Serial.print("Latitude= ");
+      Serial.print(gps.location.lat(), 6);
       currentLat = gps.location.lat();
-      // Serial.print(" Longitude= ");
-      // Serial.println(gps.location.lng(), 6);
+      Serial.print(" Longitude= ");
+      Serial.println(gps.location.lng(), 6);
       currentLng = gps.location.lng();
     }
   }
-
   currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
   if (currentMillis - startMillis >= period)  //test whether the period has elapsed
   {
     heading = getHeading(currentLat, destinationLat, currentLng, destinationLng);
     Serial.println(heading);
     // Serial.println("hii");
+    waypoint_Xdist, waypoint_Ydist = gen_waypoint(n,heading);
     currentX = getX(currentLat, currentLng);
     currentY = getY(currentLat);
 
@@ -204,7 +216,7 @@ void loop() {
     prevX = currentX;
     prevY = currentY;
 
-    distance = getDistance(currentLat, currentLng);
+    distance = getDistance(currentLat, currentLng)/waypoint_num;
     // Serial.println(distance);
     if(currentDirection == 1) {
       Serial.println("Keep Left");
@@ -212,10 +224,17 @@ void loop() {
       Serial.println("Keep Right");
     }
 
-    if (distance < 10) {
-      Serial.println("WE'RE DONE");
+    if (distance < (10/waypoint_num)) {
+      n++;
+      if (n == waypoint_num) {
+        Serial.println("WE'RE DONE, DELAYING");
+        delay(200000);
+      }
+      else {
+        Serial.println("NEW WAYPOINT");
+      }
     }
     Serial.println("");
-    startMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
+    startMillis = currentMillis;  //IMPORTANT to save the start time of the current state.
   }
 }
