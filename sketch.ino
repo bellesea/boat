@@ -5,7 +5,7 @@ static const int RXPin = 4, TXPin = 3; // pins actually switched on the arduino
 static const uint32_t GPSBaud = 9600;
 unsigned long startMillis;  //some global variables available anywhere in the program
 unsigned long currentMillis;
-const unsigned long period = 1000; 
+const unsigned long period = 3000; 
 
 // The TinyGPS++ object
 TinyGPSPlus gps;
@@ -14,8 +14,8 @@ TinyGPSPlus gps;
 SoftwareSerial ss(RXPin, TXPin);
 
 // long lat coordinates
-float destinationLng = -71.26430;
-float destinationLat = 42.29319;
+float destinationLng = -71.2643118;
+float destinationLat = 42.2931823;
 float startingLng = 0;
 float startingLat = 0;
 float waypointLng;
@@ -105,12 +105,12 @@ float toRadians(float degrees) {
 }
 
 // Function to calculate the great-circle distance
-float getDistance(float lat1, float lon1) {
+float getDistance(float lat1, float lon1, float lat2, float lon2) {
   // Convert latitude and longitude from degrees to radians
   lat1 = toRadians(lat1);
   lon1 = toRadians(lon1);
-  float lat2 = toRadians(waypointLat);
-  float lon2 = toRadians(waypointLng);
+  lat2 = toRadians(lat2);
+  lon2 = toRadians(lon2);
 
   // Calculate the distance using the provided formula
   float d = 2 * R * asin(sqrt(sq(sin((lat2 - lat1) / 2)) + cos(lat1) * cos(lat2) * sq(sin((lon2 - lon1) / 2))));
@@ -200,11 +200,11 @@ void loop() {
   while (ss.available() > 0){
     gps.encode(ss.read());
     if (gps.location.isUpdated()){
-      Serial.print("Latitude= ");
-      Serial.print(gps.location.lat(), 6);
+      // Serial.print("Latitude= ");
+      // Serial.print(gps.location.lat(), 6);
       currentLat = gps.location.lat();
-      Serial.print(" Longitude= ");
-      Serial.println(gps.location.lng(), 6);
+      // Serial.print(" Longitude= ");
+      // Serial.println(gps.location.lng(), 6);
       currentLng = gps.location.lng();
 
       if (startingLng == 0) {
@@ -255,15 +255,22 @@ void loop() {
     prevX = currentX;
     prevY = currentY;
 
-    distance = getDistance(currentLat, currentLng);
+    distance = getDistance(currentLat, currentLng, waypointLat, waypointLng);
     // Serial.println(distance);
     if(currentDirection == 1) {
       Serial.println("Keep Left");
     } else {
       Serial.println("Keep Right");
     }
+    
+    float finalDistance = getDistance(currentLat, currentLng, destinationLat, destinationLng);
 
-    if (distance < (10)/waypoint_num) {
+    if (finalDistance < 5) {
+      Serial.println("WE'RE DONE, DELAYING");
+      delay(200000);
+    }
+
+    if (distance < (25)/waypoint_num) {
       if (n == waypoint_num) {
         Serial.println("WE'RE DONE, DELAYING");
         delay(200000);
