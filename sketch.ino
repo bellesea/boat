@@ -13,39 +13,45 @@ TinyGPSPlus gps;
 // The serial connection to the GPS device
 SoftwareSerial ss(RXPin, TXPin);
 
+// long lat coordinates
 float destinationLng = -71.26430;
 float destinationLat = 42.29319;
-float distance;
+float startingLng = 0;
+float startingLat = 0;
+float waypointLng;
+float waypointLat;
 float currentLng;
 float currentLat;
+
+// distance and heading
+float distance;
+float heading;
+float startingHeading = 0;
+int currentDirection = 1;  // 1 = left; 0 = right;
+bool useX;
+
+// intermediate variables
 float currentX;
 float currentY;
-
 float prevX;
 float prevY;
 float distX;
 float distY;
-float headingRad;
-float heading;
-int currentDirection = 1;  // 1 = left; 0 = right;
-bool useX;
+float waypointX;
+float waypointY;
 bool xIsCloser;
 bool yIsCloser;
+
+// motor control
+float defaultspeed = 20;
 float leftspeed;
 float rightspeed;
-float defaultspeed = 20;
+
+// waypoint generation
 int waypoint_num = 5;
 float waypoint_Xdiff;
 float waypoint_Xdist;
 float waypoint_Ydist;
-
-float startingLng = 0;
-float startingLat = 0;
-
-float waypointLng;
-float waypointLat;
-float waypointX;
-float waypointY;
 
 int n = 1;
 
@@ -176,17 +182,18 @@ void toggleDirection() {
   }
 }
 
-float gen_waypoint(int n, float heading) {
-  // float startingX = getX(startingLat, startingLng);
-  // float startingY = getY(startingLat);
-    waypoint_Xdiff = (destinationLng - startingLng)/waypoint_num;
-    waypoint_Xdist = n * waypoint_Xdiff; // multiply generated waypoint number by x distance between each generated waypointed
-    waypoint_Ydist = waypoint_Xdist * tan(heading);
-    waypointLng = startingLng + waypoint_Xdist;
-    waypointLat = startingLat + waypoint_Ydist;
+float gen_waypoint(int n, float startingHeading) {
+  float waypoint_Xdiff = (destinationLng - startingLng) / waypoint_num;
+  float waypoint_Xdist = n * waypoint_Xdiff;  // multiply generated waypoint number by x distance between each generated waypointed
+  
+  float waypoint_Ydiff = (destinationLat - startingLat) / waypoint_num;
+  float waypoint_Ydist = n * waypoint_Ydiff;
+  // float waypoint_Ydist = waypoint_Xdist * tan(startingHeading);
+  waypointLng = startingLng + waypoint_Xdist;
+  waypointLat = startingLat + waypoint_Ydist;
 
-    return (waypointLng, waypointLat);
-  }
+  return (waypointLng, waypointLat);
+}
 
 void loop() {
   // Serial.println("HII");
@@ -213,6 +220,11 @@ void loop() {
   if (currentMillis - startMillis >= period)  //test whether the period has elapsed
   {
     heading = getHeading(currentLat, destinationLat, currentLng, destinationLng);
+
+    if (startingHeading == 0) {
+      startingHeading = heading;
+    }
+
     Serial.println(heading);
     // Serial.println("hii");
 
