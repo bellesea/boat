@@ -215,7 +215,14 @@ void loop() {
     heading = getHeading(currentLat, destinationLat, currentLng, destinationLng);
     Serial.println(heading);
     // Serial.println("hii");
-    waypointLng, waypointLat = gen_waypoint(n,heading);
+
+    if (n >= waypoint_num) {
+      waypointLat = destinationLat;
+      waypointLng = destinationLng;
+    }
+    else {
+      waypointLng, waypointLat = gen_waypoint(n,heading);
+    }
 
     currentX = getX(currentLat, currentLng);
     currentY = getY(currentLat);
@@ -236,7 +243,7 @@ void loop() {
     prevX = currentX;
     prevY = currentY;
 
-    distance = getDistance(currentLat, currentLng)/waypoint_num;
+    distance = getDistance(currentLat, currentLng);
     // Serial.println(distance);
     if(currentDirection == 1) {
       Serial.println("Keep Left");
@@ -244,7 +251,7 @@ void loop() {
       Serial.println("Keep Right");
     }
 
-    if (distance < (10/waypoint_num)) {
+    if (distance < (10)/waypoint_num) {
       if (n == waypoint_num) {
         Serial.println("WE'RE DONE, DELAYING");
         delay(200000);
