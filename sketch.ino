@@ -6,8 +6,12 @@
 Servo LeftESC;
 Servo RightESC;
 float defaultspeed = 0;
-float leftspeed = 50;
-float rightspeed = 30;
+float rightdefaultspeed = 32;
+float leftdefaultspeed = 40; // difference should be around 8-12; left > right;
+float rightspeed;
+float leftspeed;
+
+// difference is
 
 static const int RXPin = 4, TXPin = 3;  // pins actually switched on the arduino
 static const uint32_t GPSBaud = 9600;
@@ -58,8 +62,10 @@ float waypoint_Ydist;
 
 int n = 1;
 
+int called = 0;
+
 void setup() {
-  // Serial.begin(9600);
+  Serial.begin(9600);
   // ss.begin(GPSBaud);
   RightESC.attach(10, 1000, 2000);
   LeftESC.attach(9, 1000, 2000);
@@ -67,6 +73,8 @@ void setup() {
   LeftESC.write(0);
   // Serial.setTimeout(1);
   delay(1000);
+  rightspeed = rightdefaultspeed;
+  leftspeed = leftdefaultspeed;
   startMillis = millis();
 }
 
@@ -157,40 +165,65 @@ float getYDifference(float currentY) {
   return waypointY - currentY;
 }
 
-// void goLeft() {
-//   currentDirection = 1;
-//   if (useX == true) {
-//     leftspeed = 40;
+void goRight() {
+  currentDirection = 0;
+  if (useX == true) {
+    leftspeed = 0;
+  } else {
+    leftspeed = 0;
+  }
+  rightspeed = rightdefaultspeed;
+  Serial.println("go right");
+  LeftESC.write(leftspeed);
+  RightESC.write(rightspeed);
+  delay(3000);
+  Serial.println("go right 2");
 
-//     // 10*getXDifference(currentX);
-//   } else {
-//     leftspeed = 40;
-//     // 10*getYDifference(currentY);
-//   }
-//   rightspeed = defaultspeed;
-//   Serial.println("go left");
-// }
+  leftspeed = leftdefaultspeed;
+}
 
-// void goRight() {
-//   currentDirection = 0;
-//   if (useX == true) {
-//     rightspeed = 30;
-//     // 10*getXDifference(currentX);
-//   } else {
-//     rightspeed = 30;
-//     // 10*getYDifference(currentY);
-//   }
-//   leftspeed = defaultspeed;
-//   Serial.println("go right");
-// }
+void goLeft() {
+  currentDirection = 0;
+  if (useX == true) {
+    leftspeed = 46;
+    // 10*getXDifference(currentX);
+  } else {
+    leftspeed = 46;
+    // 10*getYDifference(currentY);
+  }
+  rightspeed = rightdefaultspeed;
+  Serial.println("go left");
+  LeftESC.write(leftspeed);
+  RightESC.write(rightspeed);
+  delay(1000);
+  Serial.println("go left 2");
 
-// void toggleDirection() {
-//   if (currentDirection == 1) {  // 1 = left
-//     goRight();
-//   } else {
-//     goLeft();
-//   }
-// }
+  leftspeed = leftdefaultspeed;
+}
+
+void turn180() {
+    currentDirection = 0;
+  if (useX == true) {
+    leftspeed = 0;
+  } else {
+    leftspeed = 0;
+  }
+  rightspeed = rightdefaultspeed;
+  Serial.println("turning");
+  LeftESC.write(leftspeed);
+  RightESC.write(rightspeed);
+  delay(5000);
+  Serial.println("turning 2");
+
+  leftspeed = leftdefaultspeed;
+}
+void toggleDirection() {
+  if (currentDirection == 1) {  // 1 = left
+    goRight();
+  } else {
+    goLeft();
+  }
+}
 
 float gen_waypoint(int n, float startingHeading) {
   float waypoint_Xdiff = (destinationLng - startingLng) / waypoint_num;
@@ -208,7 +241,15 @@ float gen_waypoint(int n, float startingHeading) {
 void loop() {
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
+  // delay(1000);
   // Serial.println("HII");
+
+  if (called == 0) {
+    Serial.println("RUN");
+    goRight();
+    called = 1;
+  }
+
   while (ss.available() > 0) {
     gps.encode(ss.read());
     if (gps.location.isUpdated()) {
@@ -238,9 +279,6 @@ void loop() {
       startingHeading = heading;
     }
 
-    // Serial.println(heading);
-    // Serial.println("hii");
-
     if (n >= waypoint_num) {
       waypointLat = destinationLat;
       waypointLng = destinationLng;
@@ -258,17 +296,17 @@ void loop() {
     xIsCloser = getCloserX(currentX, prevX);
     yIsCloser = getCloserY(currentY, prevY);
 
-    // if (useX && !xIsCloser) {
-    //   toggleDirection();
-    // } else if (!useX && !yIsCloser) {
-    //   toggleDirection();
-    // }
+    if (useX && !xIsCloser) {
+      toggleDirection();
+    } else if (!useX && !yIsCloser) {
+      toggleDirection();
+    }
 
     prevX = currentX;
     prevY = currentY;
 
     distance = getDistance(currentLat, currentLng);
-    // Serial.println(distance);
+
     if (currentDirection == 1) {
       // Serial.println("Keep Left");
     } else {
@@ -278,7 +316,10 @@ void loop() {
     if (distance < (10) / waypoint_num) {
       if (n == waypoint_num) {
         // Serial.println("WE'RE DONE, DELAYING");
-        // delay(200000);
+        // turn180();
+        // destinationLat = startingLat;
+        // destinationLng = startingLng;
+        n = 0;
       } else {
         n++;
         // Serial.println("NEW WAYPOINT");
