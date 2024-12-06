@@ -1,13 +1,13 @@
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
-#include <Servo.h>
+#include <PWMServo.h>
 
 // control ESC
-Servo LeftESC;
-Servo RightESC;
+PWMServo LeftESC;
+PWMServo RightESC;
 float defaultspeed = 0;
-float rightdefaultspeed = 32;
-float leftdefaultspeed = 40; // difference should be around 8-12; left > right;
+float rightdefaultspeed = 48;
+float leftdefaultspeed = 50; // difference should be around 8-12; left > right;
 float rightspeed;
 float leftspeed;
 
@@ -17,7 +17,7 @@ static const int RXPin = 4, TXPin = 3;  // pins actually switched on the arduino
 static const uint32_t GPSBaud = 9600;
 unsigned long startMillis;  //some global variables available anywhere in the program
 unsigned long currentMillis;
-const unsigned long period = 1000;
+const unsigned long period = 3000;
 
 // The TinyGPS++ object
 TinyGPSPlus gps;
@@ -26,8 +26,8 @@ TinyGPSPlus gps;
 SoftwareSerial ss(RXPin, TXPin);
 
 // long lat coordinates
-float destinationLng = -71.26430;
-float destinationLat = 42.29319;
+float destinationLng = -71.31068;
+float destinationLat = 42.28984;
 float startingLng = 0;
 float startingLat = 0;
 float waypointLng;
@@ -66,15 +66,14 @@ int called = 0;
 
 void setup() {
   Serial.begin(9600);
-  // ss.begin(GPSBaud);
   RightESC.attach(10, 1000, 2000);
   LeftESC.attach(9, 1000, 2000);
   RightESC.write(0);
   LeftESC.write(0);
-  // Serial.setTimeout(1);
-  delay(1000);
+  delay(1000);  
   rightspeed = rightdefaultspeed;
   leftspeed = leftdefaultspeed;
+  ss.begin(GPSBaud);
   startMillis = millis();
 }
 
@@ -176,27 +175,27 @@ void goRight() {
   Serial.println("go right");
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
-  delay(3000);
-  Serial.println("go right 2");
+  delay(1000);
+  // Serial.println("go right 2");
 
   leftspeed = leftdefaultspeed;
 }
 
 void goLeft() {
-  currentDirection = 0;
+  currentDirection = 1;
   if (useX == true) {
-    leftspeed = 46;
+    leftspeed = 70;
     // 10*getXDifference(currentX);
   } else {
-    leftspeed = 46;
+    leftspeed = 70;
     // 10*getYDifference(currentY);
   }
   rightspeed = rightdefaultspeed;
   Serial.println("go left");
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
-  delay(1000);
-  Serial.println("go left 2");
+  delay(2000);
+  // Serial.println("go left 2");
 
   leftspeed = leftdefaultspeed;
 }
@@ -209,11 +208,11 @@ void turn180() {
     leftspeed = 0;
   }
   rightspeed = rightdefaultspeed;
-  Serial.println("turning");
+  // Serial.println("turning");
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
   delay(5000);
-  Serial.println("turning 2");
+  // Serial.println("turning 2");
 
   leftspeed = leftdefaultspeed;
 }
@@ -241,15 +240,13 @@ float gen_waypoint(int n, float startingHeading) {
 void loop() {
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
-  // delay(1000);
-  // Serial.println("HII");
 
-  if (called == 0) {
-    Serial.println("RUN");
-    goRight();
-    called = 1;
-  }
-
+  // if (called == 0) {
+  //   goRight();
+  //   called = 1;
+  // }
+  
+  
   while (ss.available() > 0) {
     gps.encode(ss.read());
     if (gps.location.isUpdated()) {
@@ -308,9 +305,9 @@ void loop() {
     distance = getDistance(currentLat, currentLng);
 
     if (currentDirection == 1) {
-      // Serial.println("Keep Left");
+      Serial.println("Keep Left");
     } else {
-      // Serial.println("Keep Right");
+      Serial.println("Keep Right");
     }
 
     if (distance < (10) / waypoint_num) {
