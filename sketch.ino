@@ -223,11 +223,9 @@ void turn180() {
     leftspeed = 0;
   }
   rightspeed = rightdefaultspeed;
-  // Serial.println("turning");
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
-  delay(5000);
-  // Serial.println("turning 2");
+  delay(4000);
 
   leftspeed = leftdefaultspeed;
 }
@@ -266,12 +264,6 @@ void loop() {
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
 
-  // if (called == 0) {
-  //   goRight();
-  //   called = 1;
-  // }
-
-
   while (ss.available() > 0) {
     gps.encode(ss.read());
     if (gps.location.isUpdated()) {
@@ -307,19 +299,10 @@ void loop() {
       rightHeadingBoundary = 45.0;
       leftHeadingBoundary = 315.0;
 
-            //    Serial.print("prevLat:");
-      // Serial.println(prevLat,6);
-      //  Serial.print("prevLng:");
-      // Serial.println(prevLng,6);
-      //  Serial.print("currentLat:");
       Serial.println(useX);
       Serial.println(currentLat,6);
-      //  Serial.print("currentLng:");
       Serial.println(currentLng,6);
-      //   Serial.print("currentHeading");
-      //   Serial.println(getHeading(prevLat, currentLat, prevLng, currentLng, 0));
-      //   Serial.print("generalHeading");
-      //   Serial.println(generalHeading);
+   
       if (currentHeading != diff) {
         if (currentHeading > rightHeadingBoundary && currentHeading < oppositeGeneralHeading) {
           Serial.print("WAY OFF");
@@ -365,41 +348,25 @@ void loop() {
     prevLng = currentLng;
 
     distance = getDistance(currentLat, currentLng);
-        //    Serial.print("prevLat:");
-    // Serial.println(prevLat,6);
-    //  Serial.print("prevLng:");
-    // Serial.println(prevLng,6);
-    //  Serial.print("currentLat:");
-    // Serial.println(currentLat,6);
-    //  Serial.print("currentLng:");
-    // Serial.println(currentLng,6);
-    //   Serial.print("currentHeading");
-    //   Serial.println(getHeading(prevLat, currentLat, prevLng, currentLng, 0));
-    //   Serial.print("generalHeading");
-    //   Serial.println(generalHeading);
+
     Serial.print("distance:");
     Serial.println(distance);
     Serial.println("----------------------");
 
-    // if (currentDirection == 1) {
-    //   Serial.println("Keep Left");
-    // } else {
-    //   Serial.println("Keep Right");
-    // }
-
-    if (distance < (10) / waypoint_num) {
+    if (distance < (10)) {
       if (n == waypoint_num) {
         // Serial.println("WE'RE DONE, DELAYING");
-        // turn180();
-        // destinationLat = startingLat;
-        // destinationLng = startingLng;
+        for (int i = 0; i < 10; i++) {
+          turn180();
+        }
+        destinationLat = startingLat;
+        destinationLng = startingLng;
         n = 0;
       } else {
         n++;
         Serial.println("NEW WAYPOINT");
       }
     }
-    // Serial.println("");
-    startMillis = currentMillis;  //IMPORTANT to save the start time of the current state.
+    startMillis = currentMillis;  
   }
 }
