@@ -170,7 +170,7 @@ bool getCloserY(float currentY, float prevY) {
   return y;
 }
 
-// go right
+// go right for a while then reset back to going straight
 void goRight() {
   currentDirection = 0;
   leftspeed = 0;
@@ -182,7 +182,7 @@ void goRight() {
   leftspeed = leftdefaultspeed;
 }
 
-// go left
+// go left for a while then reset back to going straight
 void goLeft() {
   currentDirection = 1;
   leftspeed = 70;
