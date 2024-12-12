@@ -96,23 +96,28 @@ float getY(float lat) {
 
 // get heading given 2 coordinates. update param is for whether to use this to determine which coordinate to use
 float getHeading(float flat1, float flat2, float flon1, float flon2, int update) {
+  // Convert latitude and longitude from degrees to radians 
   flat1 = radians(flat1);
   flat2 = radians(flat2);
   diflon = radians((flon2) - (flon1));
   a = sin(diflon) * cos(flat2);
   b = cos(flat1) * sin(flat2) - sin(flat1) * cos(flat2) * cos(diflon);
   a = atan2(a, b);
-  tempHeading = degrees(a);
-  if (tempHeading < 0) { tempHeading = 360 + tempHeading; }
-  if (update == 1) {
-    if (tempHeading <= 45 || tempHeading >= 315 || tempHeading <= 225 && tempHeading >= 135) {
+
+  tempHeading = degrees(a); // Convert heading back to degrees from radians
+  
+  if (tempHeading < 0) { tempHeading = 360 + tempHeading; } // If heading is negative, wrap around to keep 0 < heading < 360
+  if (update == 1) { // if this is the first pass through the code, determine which axis to use in logic  
+
+    // use x values to check if boat is getting closer if heading is in top or bottom quadrant. Else, check y values
+    if (tempHeading <= 45 || tempHeading >= 315 || tempHeading <= 225 && tempHeading >= 135) {  
       useX = true;
     } else {
       useX = false;
     }
   }
 
-  return tempHeading;
+  return tempHeading; // return heading
 }
 
 
@@ -139,9 +144,9 @@ float getDistance(float lat1, float lon1) {
 
 // helper function to do modulo for heading
 float wrap(float heading) {
-  if (heading >= 360) {
+  if (heading >= 360) { // if heading is greater than 360, subtract 360 to keep in range [0,360)
     heading -= 360;
-  } else if (heading < 0) {
+  } else if (heading < 0) { // if heading is less than 360, add 360 to keep in range [0,360)
     heading += 360;
   }
 
@@ -158,13 +163,13 @@ float getYDifference(float currentY) {
   return waypointY - currentY;
 }
 
-// check if we're getting closer on the x axis
+// check if we're getting closer on the x axis based on current and prev coords
 bool getCloserX(float currentX, float prevX) {
   bool x = getXDifference(currentX) <= getXDifference(prevX);
   return x;
 }
 
-// check if we're getting closer on the y axis
+// check if we're getting closer on the y axis based on current and prev coords
 bool getCloserY(float currentY, float prevY) {
   bool y = getYDifference(currentY) <= getYDifference(prevY);
   return y;
@@ -172,42 +177,42 @@ bool getCloserY(float currentY, float prevY) {
 
 // go right for a while then reset back to going straight
 void goRight() {
-  currentDirection = 0;
-  leftspeed = 0;
-  rightspeed = rightdefaultspeed;
+  currentDirection = 0; // set current direction
+  leftspeed = 0; // set left motor turning speed 
+  rightspeed = rightdefaultspeed; // right speed is default
   Serial.println("go right");
-  LeftESC.write(leftspeed);
+  LeftESC.write(leftspeed); // send motor speeds
   RightESC.write(rightspeed);
-  delay(2000);
-  leftspeed = leftdefaultspeed;
+  delay(2000); // delay for turn
+  leftspeed = leftdefaultspeed; // reset left motor speed to default
 }
 
 // go left for a while then reset back to going straight
 void goLeft() {
-  currentDirection = 1;
-  leftspeed = 70;
-  rightspeed = rightdefaultspeed;
+  currentDirection = 1; // set current direction
+  leftspeed = 70; // set left motor turning speed
+  rightspeed = rightdefaultspeed; // right speed is default
   Serial.println("go left");
-  LeftESC.write(leftspeed);
+  LeftESC.write(leftspeed); // send motor speeds
   RightESC.write(rightspeed);
-  delay(1300);
-  leftspeed = leftdefaultspeed;
+  delay(1300); // delay for turn
+  leftspeed = leftdefaultspeed; // reset left motor speed to default
 }
 
 // turn 180 to begin going back to the origin location
 void turn180() {
-  currentDirection = 0;
-  if (useX == true) {
-    leftspeed = 0;
+  currentDirection = 0; // set direction to right
+  if (useX == true) { // ***
+    leftspeed = 0; // set left motor to 0
   } else {
-    leftspeed = 0;
+    leftspeed = 0; // set left motor to 0
   }
-  rightspeed = rightdefaultspeed;
-  LeftESC.write(leftspeed);
+  rightspeed = rightdefaultspeed; // keep right motor speed at default value
+  LeftESC.write(leftspeed); // send speeds to the ESC
   RightESC.write(rightspeed);
-  delay(4000);
+  delay(4000); // delay to allow for turn
 
-  leftspeed = leftdefaultspeed;
+  leftspeed = leftdefaultspeed; // reset left motor speed to default
 }
 
 // update which direction the boat is going in
@@ -221,14 +226,14 @@ void toggleDirection() {
 
 // generate waypoints evenly distributed in a line between the target and the starting positions
 float gen_waypoint(int n, float startingHeading) {
-  waypoint_Xdiff = (destinationLng - startingLng) / waypoint_num;
-  waypoint_Xdist = n * waypoint_Xdiff;          // multiply generated waypoint number by x distance between each generated waypointed
+  waypoint_Xdiff = (destinationLng - startingLng) / waypoint_num; // find x diff between each generated waypoint from start to end
+  waypoint_Xdist = n * waypoint_Xdiff;          // find x dist up until the current generated waypoint number
 
-  waypoint_Ydiff = (destinationLat - startingLat) / waypoint_num;
-  waypoint_Ydist = n * waypoint_Ydiff;
+  waypoint_Ydiff = (destinationLat - startingLat) / waypoint_num; // find y diff between each generated waypoint from start to end
+  waypoint_Ydist = n * waypoint_Ydiff; // find y dist up until the current generated waypoint number
   // float waypoint_Ydist = waypoint_Xdist * tan(startingHeading);
-  waypointLng = startingLng + waypoint_Xdist;
-  waypointLat = startingLat + waypoint_Ydist;
+  waypointLng = startingLng + waypoint_Xdist; // determine longitude with x dist of current waypoing and starting lng
+  waypointLat = startingLat + waypoint_Ydist; // determine latitude with y dist of current waypoing and starting lat
 
   return (waypointLng, waypointLat);
 }
@@ -239,13 +244,13 @@ void loop() {
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
 
-  while (ss.available() > 0) {
-    gps.encode(ss.read());
-    if (gps.location.isUpdated()) {
-      currentLat = gps.location.lat();
-      currentLng = gps.location.lng();
+  while (ss.available() > 0) { // ***
+    gps.encode(ss.read()); // ***
+    if (gps.location.isUpdated()) { // if there is new gps data
+      currentLat = gps.location.lat(); // set current lat with gps reading
+      currentLng = gps.location.lng(); // set current long with gps reading 
 
-      if (startingLng == 0 || startingLat == 0) {     //update starting longtitude and latitude so boat can return to it
+      if (startingLng == 0 || startingLat == 0) {     // set startig coords to current coords if still at initial value of 0
         startingLng = currentLng;
         startingLat = currentLat;
       }
@@ -259,23 +264,29 @@ void loop() {
     generalHeading = getHeading(currentLat, waypointLat, currentLng, waypointLng, 1);       // get target heading from current location to waypoint
 
     if (startingHeading == 0) {                                                             // update starting heading if first run
-      startingHeading = generalHeading;
+      startingHeading = generalHeading; 
     } else {
-      diff = 360 - generalHeading;
-      currentHeading = wrap(getHeading(prevLat, currentLat, prevLng, currentLng, 0) + diff);
-      oppositeGeneralHeading = 180.0;
-      rightHeadingBoundary = 45.0;
+      diff = 360 - generalHeading; // find the offset of the heading from 0 
+      
+      // calculate current heading from current and previous coordinates. Add diff to normalize current heading to 0. Wrap around to keep 0 < heading < 360 degrees
+      currentHeading = wrap(getHeading(prevLat, currentLat, prevLng, currentLng, 0) + diff); 
+      oppositeGeneralHeading = 180.0; // opposite heading is fixed at 180 after heading is normalized to 0
+      rightHeadingBoundary = 45.0; // define boundary conditions
       leftHeadingBoundary = 315.0;
 
-      Serial.println(useX);
-      Serial.println(currentLat, 6);
-      Serial.println(currentLng, 6);
+      Serial.println(useX); // print which axis boat uses to navigate 
+      Serial.println(currentLat, 6); // print current latitude
+      Serial.println(currentLng, 6); // print current longitude
 
-      if (currentHeading != diff) {
+      if (currentHeading != diff) { // ***
+
+        // if the current heading is between the right boundary and 180 degrees, correct left
         if (currentHeading > rightHeadingBoundary && currentHeading < oppositeGeneralHeading) {
           Serial.print("WAY OFF");
           goLeft();
           delay(2000);
+
+        // if the current heading is between the left boundary and 180 degrees, correct right
         } else if (currentHeading < leftHeadingBoundary && currentHeading > oppositeGeneralHeading) {
           Serial.print("WAY OFF");
           goRight();
@@ -284,45 +295,55 @@ void loop() {
       }
     }
 
+    // if the boat has passed the final extra waypoint, set the next waypoint to the destination location
     if (n >= waypoint_num) {
       waypointLat = destinationLat;
       waypointLng = destinationLng;
     } else {
+      // otherwise, continue to the next intermediate waypoint
       waypointLng, waypointLat = gen_waypoint(n, generalHeading);
     }
 
+    // gets the current x and y coordinates given gps coordinates 
     currentX = getX(currentLat, currentLng);
     currentY = getY(currentLat);
 
+    // gets the x and y coordinates of the waypoints given gps coordinates
     waypointX = getX(waypointLat, waypointLng);
     waypointY = getY(waypointLat);
 
-    // logic
+    // checks if the x and y distances are getting smaller
     xIsCloser = getCloserX(currentX, prevX);
     yIsCloser = getCloserY(currentY, prevY);
 
+    // if we use x distances in logic, switch direction if x dist inc 
     if (useX && !xIsCloser) {
       Serial.print("toggle");
       toggleDirection();
+      
+    // if using y distances in logic, switch direction if y dist inc
     } else if (!useX && !yIsCloser) {
       Serial.print("toggle");
       toggleDirection();
     }
 
+    // update previous values to the current values 
     prevX = currentX;
     prevY = currentY;
 
     prevLat = currentLat;
     prevLng = currentLng;
 
+    // find the total distance between current position and final destination
     distance = getDistance(currentLat, currentLng);
 
+    // print distance
     Serial.print("distance:");
     Serial.println(distance);
     Serial.println("----------------------");
 
-    if (distance < 10) {
-      if (n == waypoint_num) {
+    if (distance < 10) { // if closer than 10m
+      if (n == waypoint_num) { // if we are using the final generated waypoint, set motor speeds to 0
         Serial.println("WE'RE DONE");
 
         LeftESC.write(0);
@@ -330,14 +351,14 @@ void loop() {
 
         delay(30000);                             // stop for 30 seconds
 
-        destinationLat = startingLat;
+        destinationLat = startingLat; // set destination back to starting location
         destinationLng = startingLng;
-        n = 0;
+        n = 0; // reset back to first generated waypoint 
       } else {
-        n++;
+        n++; // if not on final waypoint, go to next waypoint
         Serial.println("NEW WAYPOINT");
       }
     }
-    startMillis = currentMillis;
+    startMillis = currentMillis; // reset millis
   }
 }
