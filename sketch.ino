@@ -202,11 +202,7 @@ void goLeft() {
 // turn 180 to begin going back to the origin location
 void turn180() {
   currentDirection = 0; // set direction to right
-  if (useX == true) { // ***
-    leftspeed = 0; // set left motor to 0
-  } else {
-    leftspeed = 0; // set left motor to 0
-  }
+  leftspeed = 0;
   rightspeed = rightdefaultspeed; // keep right motor speed at default value
   LeftESC.write(leftspeed); // send speeds to the ESC
   RightESC.write(rightspeed);
@@ -268,7 +264,7 @@ void loop() {
     } else {
       diff = 360 - generalHeading; // find the offset of the heading from 0 
       
-      // calculate current heading from current and previous coordinates. Add diff to normalize current heading to 0. Wrap around to keep 0 < heading < 360 degrees
+      // calculate current heading from current and previous coordinates. Add diff to normalize general heading to 0. Wrap around to keep 0 < heading < 360 degrees
       currentHeading = wrap(getHeading(prevLat, currentLat, prevLng, currentLng, 0) + diff); 
       oppositeGeneralHeading = 180.0; // opposite heading is fixed at 180 after heading is normalized to 0
       rightHeadingBoundary = 45.0; // define boundary conditions
@@ -278,7 +274,7 @@ void loop() {
       Serial.println(currentLat, 6); // print current latitude
       Serial.println(currentLng, 6); // print current longitude
 
-      if (currentHeading != diff) { // ***
+      if (currentHeading != diff) { // if boat is not moving, heading will be 0 + diff 
 
         // if the current heading is between the right boundary and 180 degrees, correct left
         if (currentHeading > rightHeadingBoundary && currentHeading < oppositeGeneralHeading) {
