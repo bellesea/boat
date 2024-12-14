@@ -6,16 +6,17 @@
 PWMServo LeftESC;
 PWMServo RightESC;
 float defaultspeed = 0;
-float rightdefaultspeed = 0;
-float leftdefaultspeed = 50;  // difference should be around 8-12; left > right;
+float rightdefaultspeed = 40;
+float leftdefaultspeed = 40;  // difference should be around 8-12; left > right;
 float rightspeed;
 float leftspeed;
 
 // difference is
 
-static const int RXPin = 4, TXPin = 3;  // pins actually switched on the arduino
+static const int RXPin = 3, TXPin = 4;  // pins actually switched on the arduino
 static const uint32_t GPSBaud = 9600;
 unsigned long startMillis;  //some global variables available anywhere in the program
+unsigned long stopMillis;
 unsigned long currentMillis;
 const unsigned long period = 5000;
 
@@ -26,8 +27,8 @@ TinyGPSPlus gps;
 SoftwareSerial ss(RXPin, TXPin);
 
 // long lat coordinates
-float destinationLng = -71.31202; // -71.31068;
-float destinationLat = 42.29200; // 42.28984;
+float destinationLng = -71.31187;  // -71.31068;
+float destinationLat = 42.29174;   // 42.28984;
 float startingLng = 0;
 float startingLat = 0;
 float waypointLng;
@@ -78,6 +79,7 @@ int called = 0;
 
 void setup() {
   Serial.begin(9600);
+  ss.begin(GPSBaud);
   RightESC.attach(10, 1000, 2000);
   LeftESC.attach(9, 1000, 2000);
   RightESC.write(0);
@@ -85,8 +87,8 @@ void setup() {
   delay(1000);
   rightspeed = rightdefaultspeed;
   leftspeed = leftdefaultspeed;
-  ss.begin(GPSBaud);
   startMillis = millis();
+  stopMillis = millis();
 }
 
 float getX(float lat, float lng) {
@@ -179,37 +181,38 @@ float getYDifference(float currentY) {
   return waypointY - currentY;
 }
 
-void goRight() {
+void goLeft() {
   currentDirection = 0;
   if (useX == true) {
-    leftspeed = 0;
+    rightspeed = 0;
   } else {
-    leftspeed = 0;
+    rightspeed = 0;
   }
-  rightspeed = rightdefaultspeed;
+  // rightspeed = rightdefaultspeed;
+  leftspeed = leftdefaultspeed;
   Serial.println("go right");
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
-  delay(2000);
+  delay(1000);
   // Serial.println("go right 2");
 
-  leftspeed = leftdefaultspeed;
+  rightspeed = rightdefaultspeed;
 }
 
-void goLeft() {
+void goRight() {
   currentDirection = 1;
   if (useX == true) {
-    leftspeed = 70;
+    leftspeed = 0;
     // 10*getXDifference(currentX);
   } else {
-    leftspeed = 70;
+    leftspeed = 0;
     // 10*getYDifference(currentY);
   }
   rightspeed = rightdefaultspeed;
   Serial.println("go left");
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
-  delay(2000);
+  delay(1000);
   // Serial.println("go left 2");
 
   leftspeed = leftdefaultspeed;
@@ -264,14 +267,19 @@ void loop() {
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
 
+  // if (called == 0) {
+  //   goRight();
+  //   called = 1;
+  // }
+
   while (ss.available() > 0) {
     gps.encode(ss.read());
     if (gps.location.isUpdated()) {
-      // Serial.print("Latitude= ");
-      // Serial.print(gps.location.lat(), 6);
+      Serial.print("Latitude= ");
+      Serial.print(gps.location.lat(), 6);
       currentLat = gps.location.lat();
-      // Serial.print(" Longitude= ");
-      // Serial.println(gps.location.lng(), 6);
+      Serial.print(" Longitude= ");
+      Serial.println(gps.location.lng(), 6);
       currentLng = gps.location.lng();
 
       if (startingLng == 0) {
@@ -283,9 +291,9 @@ void loop() {
       }
     }
   }
-  
+
   currentMillis = millis();                   //get the current "time" (actually the number of milliseconds since the program started)
-  if (currentMillis - startMillis >= period)  //test whether the period has elapsed
+  if (currentMillis - startMillis >= period && stopMillis < 180000)  //test whether the period has elapsed
   {
 
     generalHeading = getHeading(currentLat, waypointLat, currentLng, waypointLng, 1);
@@ -300,9 +308,9 @@ void loop() {
       leftHeadingBoundary = 315.0;
 
       Serial.println(useX);
-      Serial.println(currentLat,6);
-      Serial.println(currentLng,6);
-   
+      Serial.println(currentLat, 6);
+      Serial.println(currentLng, 6);
+
       if (currentHeading != diff) {
         if (currentHeading > rightHeadingBoundary && currentHeading < oppositeGeneralHeading) {
           Serial.print("WAY OFF");
@@ -367,6 +375,12 @@ void loop() {
         Serial.println("NEW WAYPOINT");
       }
     }
-    startMillis = currentMillis;  
+    startMillis = currentMillis;
+  }
+
+  // stop after 3 min
+  if (stopMillis > 180000) {
+    leftspeed = 0;
+    rightspeed = 0;
   }
 }
