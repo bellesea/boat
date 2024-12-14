@@ -3,9 +3,9 @@
 #include <PWMServo.h>
 
 // controls
-unsigned long timeToRun = 240000;
+unsigned long timeToRun = 400000;
 float rightdefaultspeed = 40;
-float leftdefaultspeed = 35;  // creates slight right tendencies to keep it straight
+float leftdefaultspeed = 34;  // creates slight right tendencies to keep it straight
 
 // control ESC
 PWMServo LeftESC;
@@ -29,8 +29,8 @@ TinyGPSPlus gps;
 SoftwareSerial ss(RXPin, TXPin);
 
 // long lat coordinates
-float destinationLng = -71.31245;  // -71.31068;
-float destinationLat = 42.29144;   // 42.28984;
+float destinationLng = -71.31244;  // -71.31068;
+float destinationLat = 42.29154;   // 42.28984;
 float startingLng = 0;
 float startingLat = 0;
 float waypointLng;
@@ -86,7 +86,7 @@ void setup() {
   LeftESC.attach(9, 1000, 2000);
   RightESC.write(0);
   LeftESC.write(0);
-  delay(60000); // load and untether
+  delay(40000); // load and untether
   rightspeed = rightdefaultspeed;
   leftspeed = leftdefaultspeed;
   startMillis = millis();
@@ -195,7 +195,7 @@ void goLeft() {
   Serial.println("go left");
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
-  delay(1000);
+  delay(700);
   // Serial.println("go right 2");
 
   rightspeed = rightdefaultspeed;
@@ -215,7 +215,7 @@ void goRight() {
   Serial.println("go right");
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
-  delay(1000);
+  delay(500);
   // Serial.println("go left 2");
 
   leftspeed = leftdefaultspeed;
@@ -316,11 +316,11 @@ void loop() {
 
       if (currentHeading != diff) {
         if (currentHeading > rightHeadingBoundary && currentHeading < oppositeGeneralHeading) {
-          Serial.print("WAY OFF");
+          Serial.print("WAY OFF ");
           goLeft();
           delay(2000);
         } else if (currentHeading < leftHeadingBoundary && currentHeading > oppositeGeneralHeading) {
-          Serial.print("WAY OFF");
+          Serial.print("WAY OFF ");
           goRight();
           delay(2000);
         }
@@ -365,7 +365,7 @@ void loop() {
     Serial.println("----------------------");
 
     if (distance < (15)) {
-      if (n == waypoint_num) {
+      if (n == waypoint_num && destinationLat != startingLat) {
         // Serial.println("WE'RE DONE, DELAYING");
         for (int i = 0; i < 10; i++) {
           turn180();
@@ -373,7 +373,12 @@ void loop() {
         destinationLat = startingLat;
         destinationLng = startingLng;
         n = 0;
-      } else {
+      } else if (n == waypoint_num && destinationLat == startingLat){
+        leftspeed = 0;
+        rightspeed = 0;
+        delay(600000);
+      }
+      else {
         n++;
         Serial.println("NEW WAYPOINT");
       }
