@@ -2,12 +2,15 @@
 #include <SoftwareSerial.h>
 #include <PWMServo.h>
 
+// controls
+unsigned long timeToRun = 240000;
+float rightdefaultspeed = 40;
+float leftdefaultspeed = 35;  // creates slight right tendencies to keep it straight
+
 // control ESC
 PWMServo LeftESC;
 PWMServo RightESC;
 float defaultspeed = 0;
-float rightdefaultspeed = 40;
-float leftdefaultspeed = 40;  // difference should be around 8-12; left > right;
 float rightspeed;
 float leftspeed;
 
@@ -16,7 +19,6 @@ float leftspeed;
 static const int RXPin = 3, TXPin = 4;  // pins actually switched on the arduino
 static const uint32_t GPSBaud = 9600;
 unsigned long startMillis;  //some global variables available anywhere in the program
-unsigned long stopMillis;
 unsigned long currentMillis;
 const unsigned long period = 5000;
 
@@ -27,8 +29,8 @@ TinyGPSPlus gps;
 SoftwareSerial ss(RXPin, TXPin);
 
 // long lat coordinates
-float destinationLng = -71.31187;  // -71.31068;
-float destinationLat = 42.29174;   // 42.28984;
+float destinationLng = -71.31245;  // -71.31068;
+float destinationLat = 42.29144;   // 42.28984;
 float startingLng = 0;
 float startingLat = 0;
 float waypointLng;
@@ -84,11 +86,10 @@ void setup() {
   LeftESC.attach(9, 1000, 2000);
   RightESC.write(0);
   LeftESC.write(0);
-  delay(1000);
+  delay(60000); // load and untether
   rightspeed = rightdefaultspeed;
   leftspeed = leftdefaultspeed;
   startMillis = millis();
-  stopMillis = millis();
 }
 
 float getX(float lat, float lng) {
@@ -151,26 +152,26 @@ float getDistance(float lat1, float lon1) {
 
 bool getCloserX(float currentX, float prevX) {
   bool x = getXDifference(currentX) <= getXDifference(prevX);
-  //Serial.println(getXDifference(currentX));
-  //Serial.println(getXDifference(prevX));
-  //Serial.println("x difference:" + x);
-  if (x) {
-    // Serial.println("Closer X");
-  } else {
-    //Serial.println("Not closer X");
-  }
+  // //Serial.println(getXDifference(currentX));
+  // //Serial.println(getXDifference(prevX));
+  // //Serial.println("x difference:" + x);
+  // if (x) {
+  //   // Serial.println("Closer X");
+  // } else {
+  //   //Serial.println("Not closer X");
+  // }
   return x;
 }
 
 bool getCloserY(float currentY, float prevY) {
   bool y = getYDifference(currentY) <= getYDifference(prevY);
-  //Serial.println(getYDifference(currentY));
-  //Serial.println(getYDifference(prevY));
-  if (y) {
-    // Serial.println("Closer Y");
-  } else {
-    //Serial.println("Not closer Y");
-  }
+  // //Serial.println(getYDifference(currentY));
+  // //Serial.println(getYDifference(prevY));
+  // if (y) {
+  //   // Serial.println("Closer Y");
+  // } else {
+  //   //Serial.println("Not closer Y");
+  // }
   return y;
 }
 
@@ -183,14 +184,15 @@ float getYDifference(float currentY) {
 
 void goLeft() {
   currentDirection = 0;
-  if (useX == true) {
-    rightspeed = 0;
-  } else {
-    rightspeed = 0;
-  }
+  rightspeed = 0;
+  // if (useX == true) {
+  //   rightspeed = 0;
+  // } else {
+  //   rightspeed = 0;
+  // }
   // rightspeed = rightdefaultspeed;
   leftspeed = leftdefaultspeed;
-  Serial.println("go right");
+  Serial.println("go left");
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
   delay(1000);
@@ -201,15 +203,16 @@ void goLeft() {
 
 void goRight() {
   currentDirection = 1;
-  if (useX == true) {
-    leftspeed = 0;
-    // 10*getXDifference(currentX);
-  } else {
-    leftspeed = 0;
-    // 10*getYDifference(currentY);
-  }
+  leftspeed = 0;
+  // if (useX == true) {
+  //   leftspeed = 0;
+  //   // 10*getXDifference(currentX);
+  // } else {
+  //   leftspeed = 0;
+  //   // 10*getYDifference(currentY);
+  // }
   rightspeed = rightdefaultspeed;
-  Serial.println("go left");
+  Serial.println("go right");
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
   delay(1000);
@@ -293,7 +296,7 @@ void loop() {
   }
 
   currentMillis = millis();                   //get the current "time" (actually the number of milliseconds since the program started)
-  if (currentMillis - startMillis >= period && stopMillis < 180000)  //test whether the period has elapsed
+  if ((currentMillis < timeToRun) && (currentMillis - startMillis >= period))  //test whether the period has elapsed
   {
 
     generalHeading = getHeading(currentLat, waypointLat, currentLng, waypointLng, 1);
@@ -304,11 +307,11 @@ void loop() {
       diff = 360 - generalHeading;
       currentHeading = wrap(getHeading(prevLat, currentLat, prevLng, currentLng, 0) + diff);
       oppositeGeneralHeading = 180.0;
-      rightHeadingBoundary = 45.0;
-      leftHeadingBoundary = 315.0;
+      rightHeadingBoundary = 30.0;
+      leftHeadingBoundary = 330.0;
 
-      Serial.println(useX);
-      Serial.println(currentLat, 6);
+      // Serial.print(useX);
+      Serial.print(currentLat, 6);
       Serial.println(currentLng, 6);
 
       if (currentHeading != diff) {
@@ -361,7 +364,7 @@ void loop() {
     Serial.println(distance);
     Serial.println("----------------------");
 
-    if (distance < (10)) {
+    if (distance < (15)) {
       if (n == waypoint_num) {
         // Serial.println("WE'RE DONE, DELAYING");
         for (int i = 0; i < 10; i++) {
@@ -379,7 +382,7 @@ void loop() {
   }
 
   // stop after 3 min
-  if (stopMillis > 180000) {
+  if (currentMillis > timeToRun) {
     leftspeed = 0;
     rightspeed = 0;
   }
