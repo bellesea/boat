@@ -14,8 +14,7 @@ float defaultspeed = 0;
 float rightspeed;
 float leftspeed;
 
-// difference is
-
+// connect to GPS module
 static const int RXPin = 3, TXPin = 4;  // pins actually switched on the arduino
 static const uint32_t GPSBaud = 9600;
 unsigned long startMillis;  //some global variables available anywhere in the program
