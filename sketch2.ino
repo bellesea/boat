@@ -3,9 +3,10 @@
 #include <PWMServo.h>
 
 // controls
-unsigned long timeToRun = 400000;
-float rightdefaultspeed = 40;
-float leftdefaultspeed = 34;  // creates slight right tendencies to keep it straight
+unsigned long timeToRun = 500000;
+float rightdefaultspeed = 55;
+float leftdefaultspeed = 48;  // creates slight right tendencies to keep it straight
+int waypoint_num = 1;
 
 // control ESC
 PWMServo LeftESC;
@@ -26,7 +27,7 @@ unsigned long currentMillis;
 const unsigned long period = 5000;
 
 // long lat coordinates
-float destinationLng = -71.31244;  // -71.31068;
+float destinationLng = -71.31248;  // -71.31068;
 float destinationLat = 42.29154;   // 42.28984;
 float startingLng = 0;
 float startingLat = 0;
@@ -66,7 +67,6 @@ float b;
 float tempHeading;
 
 // waypoint generation
-int waypoint_num = 1;
 float waypoint_Xdiff;
 float waypoint_Ydiff;
 float waypoint_Xdist;
@@ -83,7 +83,8 @@ void setup() {
   LeftESC.attach(9, 1000, 2000);    // control ESCs
   RightESC.write(0);                // stop motors
   LeftESC.write(0);                 // stop motors
-  delay(40000);                     // 40 seconds to load and untether
+  delay(120000);                     // 40 seconds to load and untether
+  // delay(2000);
   rightspeed = rightdefaultspeed;   // set motor speeds
   leftspeed = leftdefaultspeed;
   startMillis = millis();           // begin timer for loop
@@ -177,19 +178,19 @@ float getYDifference(float currentY) {
 
 void goLeft() {
   currentDirection = 1;               // set current direction
-  rightspeed = 0;                     // set right motor to 0 to turn left
+  rightspeed = 10;                     // set right motor to 0 to turn left
   leftspeed = leftdefaultspeed;
   Serial.println("go left");
   LeftESC.write(leftspeed);
   RightESC.write(rightspeed);
-  delay(700);
+  delay(600);
   rightspeed = rightdefaultspeed;     // reset motor speeds
 }
 
 // go right for a while then reset back to going straight
 void goRight() {
   currentDirection = 0;               // set current direction
-  leftspeed = 0;
+  leftspeed = 10;
   rightspeed = rightdefaultspeed;     // set left motor to 0 to turn right
   Serial.println("go right");
   LeftESC.write(leftspeed);
